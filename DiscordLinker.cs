@@ -4,10 +4,6 @@ using UnityEngine;
 using UnityEngine.Networking;
 using TMPro;
 
-/// <summary>
-/// Attach to a Canvas GameObject that contains the linking UI.
-/// Assign the TMP text fields in the Inspector.
-/// </summary>
 public class DiscordLinker : MonoBehaviour
 {
     [Header("API")]
@@ -15,32 +11,25 @@ public class DiscordLinker : MonoBehaviour
     public string apiBaseUrl = "http://localhost:8000";
 
     [Header("UI References")]
-    public TextMeshProUGUI codeText;        // Shows the 8-char code
-    public TextMeshProUGUI statusLabelText; // Shows MEMBER / VIP / etc.
-    public TextMeshProUGUI instructionText; // Guidance text
-    public GameObject      linkingPanel;    // Panel shown before linking
-    public GameObject      linkedPanel;     // Panel shown after linking
+    public TextMeshProUGUI codeText;
+    public TextMeshProUGUI statusLabelText;
+    public TextMeshProUGUI instructionText;
+    public GameObject      linkingPanel;
+    public GameObject      linkedPanel;
 
     [Header("Polling")]
     [Tooltip("How often (seconds) to check if the player has linked / status changed")]
     public float pollInterval = 5f;
 
-    // ── Internal ──────────────────────────────────────────────────────────────
     private string _gamePlayerId;
     private bool   _isLinked = false;
 
-    // ─────────────────────────────────────────────────────────────────────────
-
     void Start()
     {
-        // Use a stable unique ID for this player.
-        // Replace this with your own auth ID (Steam, account ID, etc.)
         _gamePlayerId = GetOrCreatePlayerId();
 
         StartCoroutine(InitialiseLinker());
     }
-
-    // ── Step 1: Get/generate the link code ───────────────────────────────────
 
     IEnumerator InitialiseLinker()
     {
@@ -67,8 +56,6 @@ public class DiscordLinker : MonoBehaviour
         }
     }
 
-    // ── Step 2: Show the code panel ──────────────────────────────────────────
-
     void ShowCode(string code)
     {
         if (linkingPanel) linkingPanel.SetActive(true);
@@ -77,7 +64,6 @@ public class DiscordLinker : MonoBehaviour
         if (codeText)
         {
             codeText.text = code;
-            // Style it so it's easy to read
             codeText.fontSize         = 36;
             codeText.fontStyle        = FontStyles.Bold;
             codeText.characterSpacing = 6;
@@ -86,8 +72,6 @@ public class DiscordLinker : MonoBehaviour
         if (instructionText)
             instructionText.text = "Go to our Discord and run:\n/link " + code;
     }
-
-    // ── Step 3: Poll for link + status changes ───────────────────────────────
 
     IEnumerator PollStatus()
     {
@@ -119,8 +103,6 @@ public class DiscordLinker : MonoBehaviour
             instructionText.text = "Waiting for you to link in Discord…";
     }
 
-    // ── Step 4: Update UI once linked ────────────────────────────────────────
-
     void ApplyLinkedState(PlayerStatusResponse status)
     {
         _isLinked = true;
@@ -139,8 +121,6 @@ public class DiscordLinker : MonoBehaviour
         }
     }
 
-    // ── Persistent player ID ─────────────────────────────────────────────────
-
     static string GetOrCreatePlayerId()
     {
         const string key = "DiscordLinker_PlayerId";
@@ -148,8 +128,6 @@ public class DiscordLinker : MonoBehaviour
             PlayerPrefs.SetString(key, Guid.NewGuid().ToString());
         return PlayerPrefs.GetString(key);
     }
-
-    // ── JSON models ──────────────────────────────────────────────────────────
 
     [Serializable] class GenerateCodeRequest  { public string game_player_id; }
     [Serializable] class GenerateCodeResponse { public string code; }
