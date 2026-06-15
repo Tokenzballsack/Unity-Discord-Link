@@ -4,25 +4,21 @@ from motor.motor_asyncio import AsyncIOMotorClient
 import os, secrets, string
 from datetime import datetime
 
-app = FastAPI(title="Unity-Discord Linker API")
-
-# ── MongoDB ──────────────────────────────────────────────────────────────────
+app = FastAPI(title="Tokenz API")
 MONGO_URI = os.getenv("MONGO_URI", "mongodb://localhost:27017")
-STAFF_SECRET = os.getenv("STAFF_SECRET", "change-me-in-production")
+STAFF_SECRET = os.getenv("STAFF_SECRET", "change-me")
 
 client = AsyncIOMotorClient(MONGO_URI)
 db = client["unity_discord"]
 players_col = db["players"]
 codes_col    = db["pending_codes"]
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
 def generate_code(length: int = 8) -> str:
     alphabet = string.ascii_uppercase + string.digits
     return "".join(secrets.choice(alphabet) for _ in range(length))
 
-# ── Models ───────────────────────────────────────────────────────────────────
 class GenerateCodeRequest(BaseModel):
-    game_player_id: str          # unique ID from Unity (e.g. Steam ID, GUID)
+    game_player_id: str
 
 class LinkRequest(BaseModel):
     code: str
@@ -30,13 +26,9 @@ class LinkRequest(BaseModel):
     discord_name: str
 
 class StatusUpdateRequest(BaseModel):
-    discord_name: str            # staff targets player by Discord name
-    label: str                   # e.g. "ADMIN", "VIP", "BANNED"
-    colour: str                  # hex string, e.g. "#FF0000"
-
-# ─────────────────────────────────────────────────────────────────────────────
-# UNITY ENDPOINTS
-# ─────────────────────────────────────────────────────────────────────────────
+    discord_name: str
+    label: str
+    colour: str
 
 @app.post("/generate-code")
 async def generate_link_code(req: GenerateCodeRequest):
@@ -87,10 +79,6 @@ async def get_player_status(game_player_id: str):
         "colour": player.get("colour", "#808080"),
         "discord_name": player.get("discord_name")
     }
-
-# ─────────────────────────────────────────────────────────────────────────────
-# DISCORD BOT ENDPOINTS
-# ─────────────────────────────────────────────────────────────────────────────
 
 @app.post("/link")
 async def link_player(req: LinkRequest):
