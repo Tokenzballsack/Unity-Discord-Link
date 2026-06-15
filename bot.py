@@ -1,3 +1,9 @@
+#     _____     _                  _   _     _       _    
+#    |_   _|__ | | _____ _ __  ___( ) | |   (_)_ __ | | __
+#      | |/ _ \| |/ / _ \ '_ \|_  //  | |   | | '_ \| |/ /
+#      | | (_) |   <  __/ | | |/ /    | |___| | | | |   < 
+#      |_|\___/|_|\_\___|_| |_/___|   |_____|_|_| |_|_|\_\
+
 import discord
 from discord import app_commands
 import aiohttp, os
@@ -5,17 +11,15 @@ from dotenv import load_dotenv
 
 load_dotenv()
 
-DISCORD_TOKEN  = os.getenv("DISCORD_TOKEN")
+DISCORD_TOKEN  = os.getenv("DISCORD_TOKEN") # put ya discord token here
 API_BASE       = os.getenv("API_BASE", "http://localhost:8000")
 STAFF_SECRET   = os.getenv("STAFF_SECRET", "change-me-in-production")
-STAFF_ROLE_ID  = int(os.getenv("STAFF_ROLE_ID", "0"))  # Discord role ID for staff
+STAFF_ROLE_ID  = int(os.getenv("STAFF_ROLE_ID", "0"))  # staff role ID (the role of members that can edit people roles in game)
 
-# ── Bot setup ────────────────────────────────────────────────────────────────
 intents = discord.Intents.default()
 client  = discord.Client(intents=intents)
 tree    = app_commands.CommandTree(client)
 
-# ── Helpers ──────────────────────────────────────────────────────────────────
 COLOUR_MAP = {
     "grey":   "#808080",
     "gray":   "#808080",
@@ -43,9 +47,8 @@ def label_to_discord_colour(hex_colour: str) -> discord.Colour:
     except Exception:
         return discord.Colour.greyple()
 
-# ── /link ────────────────────────────────────────────────────────────────────
 @tree.command(name="link", description="Link your in-game account using the code shown in game.")
-@app_commands.describe(code="The 8-character code displayed in your game")
+@app_commands.describe(code="the 8-character code displayed in game")
 async def link(interaction: discord.Interaction, code: str):
     await interaction.response.defer(ephemeral=True)
 
@@ -60,7 +63,7 @@ async def link(interaction: discord.Interaction, code: str):
             data = await resp.json()
             if resp.status == 200:
                 embed = discord.Embed(
-                    title="✅ Account Linked!",
+                    title="[GAME NAME] Account Linked!",
                     description=data["message"],
                     colour=discord.Colour.green()
                 )
@@ -68,27 +71,25 @@ async def link(interaction: discord.Interaction, code: str):
                 embed.add_field(name="Colour", value="Grey", inline=True)
                 await interaction.followup.send(embed=embed, ephemeral=True)
             elif resp.status == 409:
-                await interaction.followup.send("⚠️ Your Discord account is already linked to a game account.", ephemeral=True)
+                await interaction.followup.send("your Discord account is already linked.", ephemeral=True)
             elif resp.status == 404:
-                await interaction.followup.send("❌ That code is invalid or has expired. Generate a new one in game.", ephemeral=True)
+                await interaction.followup.send("that code is invalid or has expired. Generate a new one.", ephemeral=True)
             else:
-                await interaction.followup.send(f"❌ Something went wrong: {data.get('detail', 'Unknown error')}", ephemeral=True)
+                await interaction.followup.send(f"Something went wrong: {data.get('detail', 'Unknown error')}", ephemeral=True)
 
-
-# ── /mystatus ────────────────────────────────────────────────────────────────
-@tree.command(name="mystatus", description="Check your linked game account status.")
+@tree.command(name="mystatus", description="Check your link status.")
 async def mystatus(interaction: discord.Interaction):
     await interaction.response.defer(ephemeral=True)
 
     async with aiohttp.ClientSession() as session:
         async with session.get(f"{API_BASE}/lookup-discord/{interaction.user.id}") as resp:
             if resp.status == 404:
-                await interaction.followup.send("You don't have a linked game account yet. Use `/link <code>` in game.", ephemeral=True)
+                await interaction.followup.send("You don't have a linked game account yet. Use `/link <code>`", ephemeral=True)
                 return
             data = await resp.json()
 
     embed = discord.Embed(
-        title="🎮 Your Linked Account",
+        title="Your Linked Account",
         colour=label_to_discord_colour(data["colour"])
     )
     embed.add_field(name="Status Label", value=data["label"], inline=True)
@@ -96,8 +97,6 @@ async def mystatus(interaction: discord.Interaction):
     embed.add_field(name="Linked Since", value=data["linked_at"][:10], inline=True)
     await interaction.followup.send(embed=embed, ephemeral=True)
 
-
-# ── /setstatus ───────────────────────────────────────────────────────────────
 @tree.command(name="setstatus", description="[Staff] Set a linked player's in-game status label and colour.")
 @app_commands.describe(
     discord_name="The player's Discord username (without #tag)",
@@ -107,7 +106,6 @@ async def mystatus(interaction: discord.Interaction):
 async def setstatus(interaction: discord.Interaction, discord_name: str, label: str, colour: str = "grey"):
     await interaction.response.defer(ephemeral=True)
 
-    # Check staff role
     staff_role = interaction.guild.get_role(STAFF_ROLE_ID)
     if staff_role not in interaction.user.roles:
         await interaction.followup.send("❌ You don't have permission to use this command.", ephemeral=True)
@@ -143,8 +141,6 @@ async def setstatus(interaction: discord.Interaction, discord_name: str, label: 
             else:
                 await interaction.followup.send(f"❌ Error: {data.get('detail', 'Unknown error')}", ephemeral=True)
 
-
-# ── Events ───────────────────────────────────────────────────────────────────
 @client.event
 async def on_ready():
     await tree.sync()
